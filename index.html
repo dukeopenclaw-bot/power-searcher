@@ -288,7 +288,7 @@
       <img class="gate-logo" src="https://images.squarespace-cdn.com/content/v1/5f4e9ac9c6bb6f1530a9202e/a0dfc3ea-5dbb-469a-82d4-f437a3de964a/Logo+-+GATE+Energy+-+Website.png?format=400w" alt="GATE Energy" onerror="this.style.display='none';document.getElementById('logoFallback').style.display='flex'">
       <div class="logo-icon" id="logoFallback" style="display:none">G</div>
       <div class="header-title">
-        <h2>Power Searcher</h2>
+        <h1>Power Searcher</h1>
         <p>Cable Route &amp; Equipment Database</p>
       </div>
     </div>
@@ -442,7 +442,7 @@ const s=JSON.parse(localStorage.getItem('ps-settings')||'{}');
   } catch(e){}
 })();
 
-// ── ROTATE LOCK (screen.orientation.lock API — PWA standalone only) ──
+// ── ROTATE LOCK (fullscreen → orientation.lock) ──
 let rotateLocked = false;
 let lockedOrientation = null;
 
@@ -455,25 +455,42 @@ async function toggleRotateLock() {
   if (!rotateLocked) {
     lockedOrientation = getOrientation();
     try {
+      // Step 1: fullscreen 진입
+      const el = document.documentElement;
+      if (el.requestFullscreen)           await el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+      // Step 2: orientation lock
       await screen.orientation.lock(lockedOrientation);
       rotateLocked = true;
       btn.textContent = lockedOrientation === 'landscape' ? '🔒 L' : '🔒 P';
       btn.classList.add('locked');
       showToast('🔒 Locked: ' + lockedOrientation, 'info');
-      try { localStorage.setItem('ps-rotate', lockedOrientation); } catch(e) {}
     } catch(err) {
       showToast('⚠ ' + err.message, 'error');
     }
   } else {
     try { screen.orientation.unlock(); } catch(e) {}
+    try {
+      if (document.exitFullscreen)            await document.exitFullscreen();
+      else if (document.webkitExitFullscreen)  document.webkitExitFullscreen();
+    } catch(e) {}
     rotateLocked = false;
     lockedOrientation = null;
     btn.textContent = '⟳';
     btn.classList.remove('locked');
-    showToast('🔓 Rotation unlocked', 'info');
-    try { localStorage.removeItem('ps-rotate'); } catch(e) {}
+    showToast('🔓 Unlocked', 'info');
   }
 }
+
+// fullscreen이 외부 요인으로 해제되면 lock 상태도 초기화
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && rotateLocked) {
+    rotateLocked = false;
+    lockedOrientation = null;
+    const btn = document.getElementById('rotateLockBtn');
+    if (btn) { btn.textContent = '⟳'; btn.classList.remove('locked'); }
+  }
+});
 
 // ── INIT ──
 window.addEventListener('DOMContentLoaded',()=>{

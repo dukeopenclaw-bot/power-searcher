@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -269,16 +269,16 @@
       </div>
     </div>
     <div class="header-right">
-      <button class="theme-toggle" onclick="toggleTheme()" title="테마 변경">
+      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Theme">
         <span class="ti" id="themeIcon">🌙</span>
         <span id="themeLabel">DARK</span>
       </button>
-      <button class="btn btn-settings btn-sm" onclick="openSettings()">⚙ 설정</button>
+      <button class="btn btn-settings btn-sm" onclick="openSettings()">⚙ Settings</button>
       <div id="statusBadge" class="status-badge idle">
         <div class="status-dot"></div>
-        <span id="statusText">준비</span>
+        <span id="statusText">Ready</span>
       </div>
-      <button class="btn btn-secondary btn-sm" onclick="forceRefresh()">↻ 새로고침</button>
+      <button class="btn btn-secondary btn-sm" onclick="forceRefresh()">↻ Refresh</button>
     </div>
   </header>
 
@@ -286,7 +286,7 @@
     <div class="panel-header">
       <span class="panel-title">🔍 Search Conditions</span>
       <div class="condition-toggle">
-        <label>조건 :</label>
+        <label>Condition:</label>
         <div class="toggle-group">
           <input type="radio" name="condition" id="condAnd" value="AND" checked>
           <label class="toggle-btn" for="condAnd">AND</label>
@@ -337,28 +337,28 @@
 <div class="modal-backdrop" id="settingsModal" onclick="backdropClose(event)">
   <div class="modal">
     <div class="modal-header">
-      <span class="modal-title">⚙ 설정 / Configuration</span>
+      <span class="modal-title">⚙ Settings / Configuration</span>
       <button class="modal-close" onclick="closeSettings()">✕</button>
     </div>
     <div class="modal-body">
       <div>
-        <div class="settings-sec-title">🔍 검색 필드 표시</div>
+        <div class="settings-sec-title">🔍 Search Fields</div>
         <div class="settings-grid" id="sfGrid"></div>
       </div>
       <div>
-        <div class="settings-sec-title">📋 결과 컬럼 표시</div>
+        <div class="settings-sec-title">📋 Result Columns</div>
         <div class="settings-grid" id="colGrid"></div>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-danger btn-sm" onclick="resetSettings()">↺ 기본값으로</button>
-      <button class="btn btn-primary btn-sm" onclick="applySettings()">✓ 적용</button>
+      <button class="btn btn-danger btn-sm" onclick="resetSettings()">↺ Reset Default</button>
+      <button class="btn btn-primary btn-sm" onclick="applySettings()">✓ Apply</button>
     </div>
   </div>
 </div>
 
 <script>
-// ★★★ 여기에 GAS 웹앱 배포 URL을 입력하세요 ★★★
+// ★★★ Enter your GAS Web App URL here ★★★
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwu59b2dxCs-O7KFB0TTRDd9ul44fD9PhsnDyQ0iQTBlVZl8lYS3bepQU2DDK0axlYk/exec';
 
 const COLS = [
@@ -437,7 +437,7 @@ function renderSearch() {
 // ── RENDER HEAD ──
 function renderHead() {
   const vis=COLS.filter(c=>activeC[c.idx]);
-  if(!vis.length){document.getElementById('tableHead').innerHTML='<th>컬럼을 선택하세요</th>';return;}
+  if(!vis.length){document.getElementById('tableHead').innerHTML='<th>Please select a column</th>';return;}
   document.getElementById('tableHead').innerHTML=vis.map(c=>{
     const cls=c.sec==='from'?'col-from':c.sec==='key'?'col-key':'col-to';
     const sorted=sortIdx===c.idx;
@@ -469,14 +469,14 @@ function applySettings(){
   try{localStorage.setItem('ps-settings',JSON.stringify({S:activeS,C:activeC}));}catch(e){}
   closeSettings(); renderSearch(); renderHead();
   if(lastRows.length) renderResults(lastRows,lastInputs);
-  showToast('✓ 설정이 적용되었습니다','success');
+  showToast('✓ Settings applied','success');
 }
 function resetSettings(){ tempS=COLS.map(c=>c.ds); tempC=COLS.map(c=>c.dc); buildModal(); }
 
-// ── DATA LOAD (fetch 방식) ──
+// ── DATA LOAD (fetch method) ──
 async function loadData(force) {
-  setStatus('loading','로딩 중...');
-  setLoading(true, force?'구글 시트에서 최신 데이터 로드 중...':'데이터 불러오는 중...');
+  setStatus('loading','Loading...');
+  setLoading(true, force?'Fetching latest data from Google Sheets...':'Loading data...');
   document.getElementById('searchBtn').disabled=true;
   try {
     const url = GAS_URL + '?action=' + (force?'forceRefresh':'loadData');
@@ -490,27 +490,27 @@ async function loadData(force) {
 function onLoaded(r){
   setLoading(false);
   document.getElementById('searchBtn').disabled=false;
-  if(!r.success){setStatus('error','오류');showToast('❌ '+(r.error||'로드 실패'),'error');return;}
+  if(!r.success){setStatus('error','Error');showToast('❌ '+(r.error||'Load failed'),'error');return;}
   allData=r.data||[]; allHeaders=r.headers||[]; lastModifiedInfo=r.lastModified||'';
-  setStatus(r.fromCache?'cached':'fresh',r.fromCache?'캐시 데이터':'최신 데이터');
+  setStatus(r.fromCache?'cached':'fresh',r.fromCache?'Cached':'Up to date');
   document.getElementById('dataInfo').textContent=`${allData.length.toLocaleString()} rows  ·  ${lastModifiedInfo}`;
-  showToast(`✓ 시트에서 로드 (${allData.length.toLocaleString()}행)`,'success');
+  showToast(`✓ Loaded from sheet (${allData.length.toLocaleString()}rows)`,'success');
 }
 function onErr(e){
   setLoading(false);
   document.getElementById('searchBtn').disabled=false;
-  setStatus('error','연결 오류');
-  showToast('❌ 연결 오류: '+e.message,'error');
+  setStatus('error','Connection Error');
+  showToast('❌ Connection Error: '+e.message,'error');
 }
 function forceRefresh(){ loadData(true); }
 
 // ── SEARCH ──
 function onInput(el){ el.classList.toggle('has-value',el.value.trim()!==''); }
 function doSearch(){
-  if(!allData.length){showToast('⚠ 데이터가 없습니다.','error');return;}
+  if(!allData.length){showToast('⚠ No data available.','error');return;}
   const inputs=new Array(9).fill('');
   COLS.filter(c=>activeS[c.idx]).forEach(c=>{ const el=document.getElementById('f'+c.idx); if(el) inputs[c.idx]=el.value.trim().toLowerCase(); });
-  if(!inputs.some(v=>v)){showToast('⚠ 검색어를 입력하세요.','info');return;}
+  if(!inputs.some(v=>v)){showToast('⚠ Please enter a search term.','info');return;}
   const isAnd=document.getElementById('condAnd').checked;
   const sCols=COLS.filter(c=>activeS[c.idx]);
   const filtered=allData.filter(row=>{
@@ -528,7 +528,7 @@ function renderResults(rows,inputs){
   document.getElementById('resultCount').textContent=rows.length.toLocaleString()+' rows';
   document.getElementById('resultsPanel').classList.add('visible');
   const tbody=document.getElementById('resultBody'); tbody.innerHTML='';
-  if(!rows.length){ tbody.innerHTML=`<tr><td colspan="${vis.length||1}"><div class="no-results"><div class="icon">🔍</div><p>검색 결과가 없습니다.</p></div></td></tr>`; return; }
+  if(!rows.length){ tbody.innerHTML=`<tr><td colspan="${vis.length||1}"><div class="no-results"><div class="icon">🔍</div><p>No results found.</p></div></td></tr>`; return; }
   let sorted=[...rows];
   if(sortIdx!==null) sorted.sort((a,b)=>{ const va=(a[sortIdx]||'').toString().toLowerCase(),vb=(b[sortIdx]||'').toString().toLowerCase(),n=va.localeCompare(vb,'ko'); return sortDir==='asc'?n:-n; });
   const frag=document.createDocumentFragment();
@@ -560,7 +560,7 @@ function exportCSV(){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download='power_searcher_results.csv'; a.click();
   URL.revokeObjectURL(url);
-  showToast('✓ CSV 다운로드 완료','success');
+  showToast('✓ CSV downloaded','success');
 }
 
 // ── UI ──

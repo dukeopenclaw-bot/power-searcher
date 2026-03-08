@@ -54,7 +54,10 @@
 
   #app { position:relative; z-index:1; max-width:1400px; margin:0 auto; padding:16px; display:flex; flex-direction:column; gap:16px; }
 
-  header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 20px; background:var(--header-bg); border:1px solid var(--border); border-radius:var(--radius2); box-shadow:var(--glow2); flex-wrap:wrap; }
+  header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 20px; background:var(--header-bg); border:1px solid var(--border); border-radius:var(--radius2); box-shadow:var(--glow2); flex-wrap:wrap; }
+  .header-right { display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+  .header-row1 { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+  .header-row2 { display:flex; justify-content:flex-end; }
   .header-left { display:flex; align-items:center; gap:14px; }
   .logo-icon { width:40px; height:40px; background:linear-gradient(135deg,var(--accent),var(--accent3)); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 0 16px rgba(0,212,255,0.4); flex-shrink:0; }
   .gate-logo { height:44px; width:auto; max-width:200px; object-fit:contain; flex-shrink:0; filter:brightness(0) invert(1); }
@@ -83,7 +86,15 @@
   .btn-danger:hover:not(:disabled) { background:rgba(255,77,109,0.15); }
   .btn-settings { background:rgba(251,191,36,0.08); border-color:rgba(251,191,36,0.35); color:var(--warn); }
   .btn-settings:hover:not(:disabled) { background:rgba(251,191,36,0.15); border-color:var(--warn); }
+  .btn-rotate { background:rgba(100,116,139,0.1); border-color:rgba(100,116,139,0.35); color:var(--text3); }
+  .btn-rotate:hover:not(:disabled) { border-color:var(--text2); color:var(--text2); }
+  .btn-rotate.locked { background:rgba(0,212,255,0.1); border-color:var(--accent); color:var(--accent); }
+  .btn-settings:hover:not(:disabled) { background:rgba(251,191,36,0.15); border-color:var(--warn); }
   .btn-sm { padding:5px 10px; font-size:11px; }
+
+  .header-right { display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+  .header-row1 { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+  .header-row2 { display:flex; align-items:center; justify-content:flex-end; }
 
   .theme-toggle { display:flex; align-items:center; gap:7px; padding:6px 12px; border:1px solid var(--border2); border-radius:20px; background:var(--bg3); cursor:pointer; font-family:'Rajdhani',sans-serif; font-size:12px; font-weight:600; letter-spacing:1px; color:var(--text2); transition:all 0.25s; white-space:nowrap; user-select:none; }
   .theme-toggle:hover { border-color:var(--accent); color:var(--accent); }
@@ -208,6 +219,8 @@
   [data-theme="light"] .btn-secondary:hover:not(:disabled) { border-color:#0077aa; color:#0077aa; background:#ddeaf8; }
   [data-theme="light"] .btn-danger { background:rgba(214,51,85,0.08); border-color:rgba(214,51,85,0.5); color:#d63355; }
   [data-theme="light"] .btn-settings { background:rgba(160,100,0,0.07); border-color:rgba(160,100,0,0.35); color:#a06800; }
+  [data-theme="light"] .btn-rotate { background:rgba(100,116,139,0.08); border-color:#c5d5e8; color:#7a90aa; }
+  [data-theme="light"] .btn-rotate.locked { background:rgba(0,119,170,0.08); border-color:#0077aa; color:#0077aa; }
   [data-theme="light"] .section-from .section-label { color:#1a5faa; border-color:rgba(26,95,170,0.3); }
   [data-theme="light"] .section-key  .section-label { color:#007a50; border-color:rgba(0,122,80,0.3); }
   [data-theme="light"] .section-to   .section-label { color:#a03080; border-color:rgba(160,48,128,0.3); }
@@ -264,21 +277,26 @@
       <img class="gate-logo" src="https://images.squarespace-cdn.com/content/v1/5f4e9ac9c6bb6f1530a9202e/a0dfc3ea-5dbb-469a-82d4-f437a3de964a/Logo+-+GATE+Energy+-+Website.png?format=400w" alt="GATE Energy" onerror="this.style.display='none';document.getElementById('logoFallback').style.display='flex'">
       <div class="logo-icon" id="logoFallback" style="display:none">G</div>
       <div class="header-title">
-        <h2>Power Searcher</h2>
-        <p>Electrical Equipment Database</p>
+        <h1>Power Searcher</h1>
+        <p>Cable Route &amp; Equipment Database</p>
       </div>
     </div>
     <div class="header-right">
-      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Theme">
-        <span class="ti" id="themeIcon">🌙</span>
-        <span id="themeLabel">DARK</span>
-      </button>
-      <button class="btn btn-settings btn-sm" onclick="openSettings()">⚙ Settings</button>
-      <div id="statusBadge" class="status-badge idle">
-        <div class="status-dot"></div>
-        <span id="statusText">Ready</span>
+      <div class="header-row1">
+        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Theme">
+          <span class="ti" id="themeIcon">🌙</span>
+          <span id="themeLabel">DARK</span>
+        </button>
+        <button class="btn btn-settings btn-sm" onclick="openSettings()">⚙ Settings</button>
+        <button class="btn btn-secondary btn-sm" onclick="forceRefresh()">↻ Refresh</button>
+        <button class="btn btn-rotate btn-sm" onclick="toggleRotateLock()" id="rotateLockBtn" title="Rotate Lock">⟳ Auto</button>
       </div>
-      <button class="btn btn-secondary btn-sm" onclick="forceRefresh()">↻ Refresh</button>
+      <div class="header-row2">
+        <div id="statusBadge" class="status-badge idle">
+          <div class="status-dot"></div>
+          <span id="statusText">Ready</span>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -412,6 +430,49 @@ function toggleTheme() {
     if(s.C&&s.C.length===9) activeC=s.C;
   } catch(e){}
 })();
+
+// ── ROTATE LOCK ──
+let rotateLocked = false;
+let rotateOrientation = null;
+
+function toggleRotateLock() {
+  const btn = document.getElementById('rotateLockBtn');
+  if (!rotateLocked) {
+    // 현재 방향 감지 후 잠금
+    const isLandscape = window.innerWidth > window.innerHeight;
+    rotateOrientation = isLandscape ? 'landscape' : 'portrait';
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock(rotateOrientation).then(() => {
+        rotateLocked = true;
+        const label = rotateOrientation === 'landscape' ? '⟳ Land.' : '⟳ Port.';
+        btn.textContent = label;
+        btn.classList.add('locked');
+        showToast('🔒 Rotation locked: ' + rotateOrientation, 'info');
+      }).catch(() => {
+        // lock API not supported — fallback visual only
+        rotateLocked = true;
+        btn.textContent = '🔒 Locked';
+        btn.classList.add('locked');
+        showToast('⚠ Lock not supported on this device', 'info');
+      });
+    } else {
+      rotateLocked = true;
+      btn.textContent = '🔒 Locked';
+      btn.classList.add('locked');
+      showToast('⚠ Orientation API not available', 'info');
+    }
+  } else {
+    // 잠금 해제
+    if (screen.orientation && screen.orientation.unlock) {
+      try { screen.orientation.unlock(); } catch(e) {}
+    }
+    rotateLocked = false;
+    rotateOrientation = null;
+    btn.textContent = '⟳ Auto';
+    btn.classList.remove('locked');
+    showToast('🔓 Rotation unlocked', 'info');
+  }
+}
 
 // ── INIT ──
 window.addEventListener('DOMContentLoaded',()=>{

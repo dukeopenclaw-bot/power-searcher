@@ -51,16 +51,6 @@
 
   html,body { min-height:100%; background:var(--bg); color:var(--text); font-family:'Noto Sans KR',sans-serif; font-size:14px; line-height:1.6; overflow-x:hidden; }
 
-  /* Rotate Lock - CSS counter-rotation trick */
-  body.rotate-lock-portrait {
-    transform-origin: top left;
-    transform: rotate(90deg) translateY(-100%);
-    width: 100vh;
-    min-height: 100vw;
-    overflow-x: hidden;
-    overflow-y: auto;
-    position: fixed;
-  }
   body.rotate-lock-landscape {
     transform-origin: top left;
     transform: rotate(-90deg) translateX(-100%);
@@ -446,76 +436,49 @@ function toggleTheme() {
         const m=document.getElementById('themeColorMeta'); if(m) m.content='#f0f4f8';
       });
     }
-    const r=localStorage.getItem('ps-rotate');
-    if(r){ lockedOrientation=r; rotateLocked=true; }
-    const s=JSON.parse(localStorage.getItem('ps-settings')||'{}');
+const s=JSON.parse(localStorage.getItem('ps-settings')||'{}');
     if(s.S&&s.S.length===9) activeS=s.S;
     if(s.C&&s.C.length===9) activeC=s.C;
   } catch(e){}
 })();
 
-// ── ROTATE LOCK (CSS counter-rotation — works on Android) ──
+// ── ROTATE LOCK (screen.orientation.lock API — PWA standalone only) ──
 let rotateLocked = false;
-let lockedOrientation = null; // 'landscape' | 'portrait'
+let lockedOrientation = null;
 
 function getOrientation() {
   return window.innerWidth >= window.innerHeight ? 'landscape' : 'portrait';
 }
 
-function applyRotateLock() {
-  if (!rotateLocked) return;
-  const current = getOrientation();
-  const body = document.body;
-  body.classList.remove('rotate-lock-portrait', 'rotate-lock-landscape');
-
-  if (lockedOrientation === 'landscape' && current === 'portrait') {
-    // 기기는 세로인데 가로로 고정 → 90도 회전
-    body.classList.add('rotate-lock-portrait');
-  } else if (lockedOrientation === 'portrait' && current === 'landscape') {
-    // 기기는 가로인데 세로로 고정 → -90도 회전
-    body.classList.add('rotate-lock-landscape');
-  }
-  // 방향이 같으면 transform 없음
-}
-
-function toggleRotateLock() {
+async function toggleRotateLock() {
   const btn = document.getElementById('rotateLockBtn');
   if (!rotateLocked) {
     lockedOrientation = getOrientation();
-    rotateLocked = true;
-    btn.textContent = lockedOrientation === 'landscape' ? '🔒 L' : '🔒 P';
-    btn.classList.add('locked');
-    applyRotateLock();
-    showToast('🔒 Locked: ' + lockedOrientation, 'info');
-    try { localStorage.setItem('ps-rotate', lockedOrientation); } catch(e) {}
+    try {
+      await screen.orientation.lock(lockedOrientation);
+      rotateLocked = true;
+      btn.textContent = lockedOrientation === 'landscape' ? '🔒 L' : '🔒 P';
+      btn.classList.add('locked');
+      showToast('🔒 Locked: ' + lockedOrientation, 'info');
+      try { localStorage.setItem('ps-rotate', lockedOrientation); } catch(e) {}
+    } catch(err) {
+      showToast('⚠ ' + err.message, 'error');
+    }
   } else {
+    try { screen.orientation.unlock(); } catch(e) {}
     rotateLocked = false;
     lockedOrientation = null;
-    document.body.classList.remove('rotate-lock-portrait', 'rotate-lock-landscape');
-    btn.textContent = '⟳ Auto';
+    btn.textContent = '⟳';
     btn.classList.remove('locked');
     showToast('🔓 Rotation unlocked', 'info');
     try { localStorage.removeItem('ps-rotate'); } catch(e) {}
   }
 }
 
-// 기기 회전 감지 → counter-rotation 적용
-window.addEventListener('orientationchange', () => {
-  setTimeout(applyRotateLock, 100);
-});
-window.addEventListener('resize', () => {
-  setTimeout(applyRotateLock, 100);
-});
-
 // ── INIT ──
 window.addEventListener('DOMContentLoaded',()=>{
   renderSearch(); renderHead(); loadData();
-  // restore rotate lock state
-  if(rotateLocked && lockedOrientation){
-    const btn=document.getElementById('rotateLockBtn');
-    if(btn){ btn.textContent=lockedOrientation==='landscape'?'🔒 L':'🔒 P'; btn.classList.add('locked'); }
-    applyRotateLock();
-  }
+
 });
 
 // ── RENDER SEARCH ──

@@ -155,9 +155,11 @@
   .table-wrapper::-webkit-scrollbar-track { background:var(--bg); }
   .table-wrapper::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
   .table-wrapper::-webkit-scrollbar-thumb:hover { background:var(--accent2); }
-  table { width:100%; border-collapse:collapse; min-width:400px; font-size:12px; }
+  table { width:auto; border-collapse:collapse; font-size:12px; table-layout:fixed; }
   thead tr { background:var(--thead-bg); position:sticky; top:0; z-index:2; }
-  th { padding:10px 12px; text-align:left; font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase; border-bottom:2px solid var(--border); white-space:nowrap; cursor:pointer; user-select:none; transition:background 0.15s; }
+  th { position:relative; padding:10px 12px; text-align:left; font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase; border-bottom:2px solid var(--border); white-space:nowrap; cursor:pointer; user-select:none; transition:background 0.15s; overflow:hidden; }
+  .col-resize-handle { position:absolute; right:0; top:0; width:6px; height:100%; cursor:col-resize; z-index:3; }
+  .col-resize-handle:hover, .col-resize-handle.resizing { background:rgba(0,212,255,0.45); border-radius:2px; }
   th:hover { background:rgba(0,212,255,0.07); }
   th.col-from { color:#60a5fa; border-bottom-color:rgba(96,165,250,0.5); }
   th.col-key  { color:var(--accent3); border-bottom-color:rgba(0,255,136,0.5); }
@@ -168,7 +170,7 @@
   tbody tr:hover { background:var(--row-hover); }
   tbody tr:nth-child(even) { background:var(--row-even); }
   tbody tr:nth-child(even):hover { background:var(--row-eh); }
-  td { padding:8px 12px; color:var(--text2); font-family:'JetBrains Mono',monospace; font-size:11px; vertical-align:top; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  td { padding:8px 12px; color:var(--text2); font-family:'JetBrains Mono',monospace; font-size:11px; vertical-align:top; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   td.col-key { color:var(--accent3); font-weight:500; }
   td mark { background:rgba(0,212,255,0.25); color:var(--accent); border-radius:2px; padding:0 2px; }
 
@@ -346,6 +348,7 @@
     </div>
     <div class="table-wrapper">
       <table id="resultTable">
+        <colgroup id="colGroup"></colgroup>
         <thead><tr id="tableHead"></tr></thead>
         <tbody id="resultBody"></tbody>
       </table>
@@ -408,6 +411,7 @@ let lastRows=[], lastInputs=new Array(9).fill('');
 let activeS=COLS.map(c=>c.ds), activeC=COLS.map(c=>c.dc);
 let tempS, tempC;
 let sortIdx=null, sortDir='asc';
+let colWidths={}, resizeState=null;
 
 // ── THEME ──
 function toggleTheme() {
@@ -514,6 +518,32 @@ function renderSearch() {
     mkSec(sec.to,'section-to','TO ▶');
 }
 
+// ── COLUMN WIDTHS ──
+const COL_CHAR_PX=7.5, COL_PAD=24, COL_MIN=80, COL_MAX=500;
+function calcAutoWidths(rows,vis){
+  const w={};
+  vis.forEach(c=>{
+    let max=c.label.length;
+    const limit=Math.min(rows.length,300);
+    for(let i=0;i<limit;i++){ const l=(rows[i][c.idx]||'').toString().length; if(l>max) max=l; }
+    w[c.idx]=Math.min(COL_MAX,Math.max(COL_MIN,Math.round(max*COL_CHAR_PX+COL_PAD)));
+  });
+  return w;
+}
+function applyColWidths(vis){
+  document.getElementById('colGroup').innerHTML=vis.map(c=>`<col style="width:${colWidths[c.idx]||180}px">`).join('');
+}
+function startResize(e,ci){
+  e.stopPropagation(); e.preventDefault();
+  const startX=e.clientX, startW=colWidths[ci]||180;
+  e.target.classList.add('resizing');
+  const handle=e.target;
+  function onMove(ev){ const dx=ev.clientX-startX; colWidths[ci]=Math.max(COL_MIN,startW+dx); applyColWidths(COLS.filter(c=>activeC[c.idx])); }
+  function onUp(){ handle.classList.remove('resizing'); document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); }
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onUp);
+}
+
 // ── RENDER HEAD ──
 function renderHead() {
   const vis=COLS.filter(c=>activeC[c.idx]);
@@ -521,7 +551,7 @@ function renderHead() {
   document.getElementById('tableHead').innerHTML=vis.map(c=>{
     const cls=c.sec==='from'?'col-from':c.sec==='key'?'col-key':'col-to';
     const sorted=sortIdx===c.idx;
-    return `<th class="${cls}${sorted?(sortDir==='asc'?' sort-asc':' sort-desc'):''}" onclick="sortBy(${c.idx})">${c.label}<i class="sort-icon">${sorted?(sortDir==='asc'?'▲':'▼'):'⇅'}</i></th>`;
+    return `<th class="${cls}${sorted?(sortDir==='asc'?' sort-asc':' sort-desc'):''}" onclick="sortBy(${c.idx})">${c.label}<i class="sort-icon">${sorted?(sortDir==='asc'?'▲':'▼'):'⇅'}</i><span class="col-resize-handle" onmousedown="startResize(event,${c.idx})"></span></th>`;
   }).join('');
 }
 
@@ -609,6 +639,9 @@ function renderResults(rows,inputs){
   document.getElementById('resultsPanel').classList.add('visible');
   const tbody=document.getElementById('resultBody'); tbody.innerHTML='';
   if(!rows.length){ tbody.innerHTML=`<tr><td colspan="${vis.length||1}"><div class="no-results"><div class="icon">🔍</div><p>No results found.</p></div></td></tr>`; return; }
+  const autoW=calcAutoWidths(rows,vis);
+  vis.forEach(c=>{ colWidths[c.idx]=autoW[c.idx]; });
+  applyColWidths(vis);
   let sorted=[...rows];
   if(sortIdx!==null) sorted.sort((a,b)=>{ const va=(a[sortIdx]||'').toString().toLowerCase(),vb=(b[sortIdx]||'').toString().toLowerCase(),n=va.localeCompare(vb,'ko'); return sortDir==='asc'?n:-n; });
   const frag=document.createDocumentFragment();
@@ -625,7 +658,7 @@ function resetAll(){
   document.getElementById('condAnd').checked=true;
   document.getElementById('resultsPanel').classList.remove('visible');
   document.getElementById('resultBody').innerHTML='';
-  lastRows=[]; lastInputs=new Array(9).fill(''); sortIdx=null; sortDir='asc'; renderHead();
+  lastRows=[]; lastInputs=new Array(9).fill(''); sortIdx=null; sortDir='asc'; colWidths={}; document.getElementById('colGroup').innerHTML=''; renderHead();
 }
 
 // ── CSV ──
